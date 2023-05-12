@@ -1,23 +1,22 @@
-
+#[cfg(test)]
+use color_eyre::Result;
 #[cfg(test)]
 use httpmock::{Method::GET, MockServer};
 #[cfg(test)]
 use pretty_assertions::{assert_eq, assert_ne};
 #[cfg(test)]
+use serde_json::{json, Value};
+#[cfg(test)]
+use tokio::fs;
+#[cfg(test)]
 use triforce_data_pull::{
-    service::DataPull,
     data_pull::serde_models::{
         Event, EventDetails, EventOutter, LeagueForTournaments, Leagues, LiveScheduleOutter,
         LolesportsId, Player, ScheduleOutter, Team, TeamsPlayers, Tournament, Wrapper,
     },
+    service::DataPull,
     utils::constants::lolesports,
 };
-#[cfg(test)]
-use color_eyre::Result;
-#[cfg(test)]
-use serde_json::{json, Value};
-#[cfg(test)]
-use tokio::fs;
 
 #[cfg(test)]
 async fn read_json_file(file_path: &str) -> Result<Value> {
@@ -29,15 +28,14 @@ async fn read_json_file(file_path: &str) -> Result<Value> {
 #[cfg(test)]
 fn setup() -> DataPull {
     DataPull::default()
-
 }
 
 /// This integration test verifies the correct functionality of `fetch_teams_and_players` function.
 ///
-/// The function sets up a mock HTTP server to provide predefined responses. It then triggers a data fetch operation 
+/// The function sets up a mock HTTP server to provide predefined responses. It then triggers a data fetch operation
 /// and verifies that the correct data has been fetched for a particular team and one of its players.
 ///
-/// Specific checks include verifying team details (like ID, name, image URLs, status), the number of players in the 
+/// Specific checks include verifying team details (like ID, name, image URLs, status), the number of players in the
 /// team, and specific details for one player (like ID, summoner name, role). At the end, the test confirms that the
 /// expected HTTP request was sent to the mock server only 1 time.
 #[tokio::test]
@@ -52,9 +50,7 @@ async fn test_fetch_teams_and_players() -> Result<()> {
     let mut data_pull = setup();
     data_pull.base_url = server.url("");
 
-    data_pull
-        .fetch_teams_and_players()
-        .await?;
+    data_pull.fetch_teams_and_players().await?;
 
     assert_eq!(data_pull.teams.len(), 1177);
     assert_eq!(data_pull.players.len(), 6400);
@@ -66,9 +62,21 @@ async fn test_fetch_teams_and_players() -> Result<()> {
     assert_eq!(fnatic.slug, "fnatic");
     assert_eq!(fnatic.name, "Fnatic");
     assert_eq!(fnatic.code, "FNC");
-    assert_eq!(fnatic.image, "http://static.lolesports.com/teams/1631819669150_fnc-2021-worlds.png");
-    assert_eq!(fnatic.alternative_image, Some("http://static.lolesports.com/teams/1592591295310_FnaticFNC-03-FullonLight.png".to_string()));
-    assert_eq!(fnatic.background_image, Some("http://static.lolesports.com/teams/1632941274242_FNC.png".to_string()));
+    assert_eq!(
+        fnatic.image,
+        "http://static.lolesports.com/teams/1631819669150_fnc-2021-worlds.png"
+    );
+    assert_eq!(
+        fnatic.alternative_image,
+        Some(
+            "http://static.lolesports.com/teams/1592591295310_FnaticFNC-03-FullonLight.png"
+                .to_string()
+        )
+    );
+    assert_eq!(
+        fnatic.background_image,
+        Some("http://static.lolesports.com/teams/1632941274242_FNC.png".to_string())
+    );
     assert_eq!(fnatic.status, "active");
     assert!(fnatic.home_league.is_some());
     assert_eq!(fnatic.players.len(), 8);
@@ -76,14 +84,17 @@ async fn test_fetch_teams_and_players() -> Result<()> {
     let home_league = fnatic.home_league.clone().unwrap();
     assert_eq!(home_league.name, "LEC");
     assert_eq!(home_league.region, "EMEA");
-    let player = fnatic.players.iter().find(|p|p.id.0 == 100356590519370319);
+    let player = fnatic.players.iter().find(|p| p.id.0 == 100356590519370319);
     assert!(player.is_some());
     let humanoid = player.unwrap();
     assert_eq!(humanoid.id.0, 100356590519370319);
     assert_eq!(humanoid.summoner_name, "Humanoid");
     assert_eq!(humanoid.first_name, " Marek");
     assert_eq!(humanoid.last_name, "Brázda");
-    assert_eq!(humanoid.image, Some("http://static.lolesports.com/players/1674150706185_humanoid.png".to_string()));
+    assert_eq!(
+        humanoid.image,
+        Some("http://static.lolesports.com/players/1674150706185_humanoid.png".to_string())
+    );
     assert_eq!(humanoid.role, "mid");
 
     mock.assert();

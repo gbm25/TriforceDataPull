@@ -8,7 +8,7 @@ use crate::utils::constants::lolesports;
 use color_eyre::{eyre::Context, Result};
 use tokio::time::sleep;
 
-pub async fn make_get_request<T>(endpoint: &str, args: Option<&T>) -> Result<Response>
+pub async fn make_get_request<T>(url: &str, args: Option<&T>) -> Result<Response>
 where
     T: Serialize + Debug,
 {
@@ -21,7 +21,7 @@ where
 
     loop {
         let mut b = client
-            .get(format!("{}{}", lolesports::BASE_URL, endpoint))
+            .get(url)
             .header("x-api-key", "0TvQnueqKa5mxJntVWt0w4LpLfEkrV1Ta8rQBb9Z");
 
         if let Some(arguments) = args {
@@ -38,14 +38,14 @@ where
                     println!(
                         "{} - Request to {} with args {:?} timed out ",
                         Local::now().format("%Y-%m-%d %H:%M:%S.%f"),
-                        &endpoint,
+                        &url,
                         args
                     );
 
                     sleep(retry_duration).await;
                 } else {
                     return Err(e)
-                        .with_context(|| format!("Failed to request data from the LoLEsports API:{endpoint:?} with args -> {args:?}"));
+                        .with_context(|| format!("Failed to request data from the LoLEsports API:{url:?} with args -> {args:?}"));
                 }
             }
         }

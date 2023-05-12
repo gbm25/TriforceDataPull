@@ -22,7 +22,7 @@ pub type OurTournaments = Vec<Tournament>;
 /// Contains the operations against the `LolEsports` API to
 /// fetch the content via REST request that `Triforce` needs
 /// to pull, parse, handle and store.
-#[derive(Debug, Default)]
+#[derive(Debug)]
 pub struct DataPull {
     pub leagues: Leagues,
     pub tournaments: OurTournaments,
@@ -33,6 +33,23 @@ pub struct DataPull {
     pub live: Vec<EventDetails>,
     pub previous_live: Vec<EventDetails>,
     pub events_with_recent_changes: Vec<EventDetails>,
+    pub base_url: String
+}
+impl Default for DataPull {
+    fn default() -> Self {
+        Self {
+            leagues: Leagues::default(),
+            tournaments: OurTournaments::default(),
+            teams: Vec::new(),
+            players: Vec::new(),
+            schedule_single_page: Vec::new(),
+            schedule: Vec::new(),
+            live: Vec::new(),
+            previous_live: Vec::new(),
+            events_with_recent_changes: Vec::new(),
+            base_url: lolesports::BASE_URL.to_string(),
+        }
+    }
 }
 
 impl DataPull {
@@ -88,13 +105,18 @@ impl DataPull {
             "{} - Fetching Teams and Players from The LoLEsports API",
             Local::now().format("%Y-%m-%d %H:%M:%S.%f")
         );
+
+        println!(" URL {}{}", self.base_url, lolesports::TEAMS_AND_LEAGUES_ENDPOINT);
         let response =
-            caller::make_get_request::<&[()]>(lolesports::TEAMS_AND_LEAGUES_ENDPOINT, None)
+            caller::make_get_request::<&[()]>(
+                &format!("{}{}", self.base_url, lolesports::TEAMS_AND_LEAGUES_ENDPOINT), 
+                None
+            )
                 .await
                 .with_context(|| {
                     "A failure happened retrieving the Teams and players from Lolesports"
                 });
-
+        
         serde_json::from_str::<Wrapper<TeamsPlayers>>(&response?.text().await.unwrap())
             .map(|parsed| {
                 for mut team in parsed.data.teams {
@@ -105,7 +127,7 @@ impl DataPull {
                     self.players.extend(team.players.into_iter())
                 }
             })
-            .with_context(|| "A failure happened parsing the Tournaments from Lolesports")
+            .with_context(|| "A failure happened parsing the players and teams from Lolesports")
     }
 
     pub async fn fetch_current_page_schedule(&mut self) -> Result<()> {

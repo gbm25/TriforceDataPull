@@ -30,6 +30,55 @@ fn setup() -> DataPull {
     DataPull::default()
 }
 
+/// This integration test validates the correct functionality of the `fetch_leagues` function.
+///
+/// The test sets up a mock HTTP server to provide predefined responses. It then initiates a data fetch operation
+/// and checks that the right data is fetched. 
+///
+/// The test verifies the number of leagues fetched, and checks the specific details of one particular league 
+/// (ID, slug, name, region, image URL). Finally, it confirms that the expected HTTP request was made to the 
+/// mock server.
+#[tokio::test]
+async fn test_fetch_leagues() -> Result<()> {
+    let server = MockServer::start();
+    let mock_data = read_json_file("tests/test_data/get_leagues.json").await?;
+
+    let mock = server.mock(|when: httpmock::When, then| {
+        when.method(GET).path_contains("getLeagues");
+        then.status(200).json_body(mock_data.clone());
+    });
+    let mut data_pull: DataPull = setup();
+    data_pull.base_url = server.url("");
+
+    data_pull.fetch_leagues().await?;
+
+    assert_eq!(data_pull.leagues.leagues.len(), 45);
+
+    let league = data_pull
+        .leagues
+        .leagues
+        .iter()
+        .find(|l| l.id.0 == 98767991325878492);
+
+    assert!(league.is_some());
+
+    let msi = league.unwrap();
+    assert_eq!(msi.id.0, 98767991325878492);
+    assert_eq!(msi.slug, "msi");
+    assert_eq!(msi.name, "MSI");
+    assert_eq!(msi.region, "INTERNATIONAL");
+    assert_eq!(
+        msi.image,
+        "http://static.lolesports.com/leagues/1592594634248_MSIDarkBG.png"
+    );
+
+    mock.assert();
+
+    Ok(())
+}
+
+
+
 /// This integration test verifies the correct functionality of `fetch_teams_and_players` function.
 ///
 /// The function sets up a mock HTTP server to provide predefined responses. It then triggers a data fetch operation

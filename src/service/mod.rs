@@ -58,9 +58,12 @@ impl DataPull {
             "{} - Fetching Leagues from The LoLEsports API",
             Local::now().format("%Y-%m-%d %H:%M:%S.%f")
         );
-        let response = caller::make_get_request::<&[()]>(lolesports::LEAGUES_ENDPOINT, None)
-            .await
-            .with_context(|| "A failure happened retrieving the Leagues from Lolesports");
+        let response = caller::make_get_request::<&[()]>(
+            &format!("{}{}", self.base_url, lolesports::LEAGUES_ENDPOINT),
+            None,
+        )
+        .await
+        .with_context(|| "A failure happened retrieving the Leagues from Lolesports");
 
         serde_json::from_str::<Wrapper<Leagues>>(&response?.text().await.unwrap())
             .map(|parsed| self.leagues = parsed.data)
@@ -79,7 +82,7 @@ impl DataPull {
                 &league.id
             );
             let response = caller::make_get_request(
-                lolesports::TOURNAMENTS_ENDPOINT,
+                &format!("{}{}", self.base_url, lolesports::TOURNAMENTS_ENDPOINT),
                 Some(&[("leagueId", &league.id)]),
             )
             .await
@@ -106,11 +109,6 @@ impl DataPull {
             Local::now().format("%Y-%m-%d %H:%M:%S.%f")
         );
 
-        println!(
-            " URL {}{}",
-            self.base_url,
-            lolesports::TEAMS_AND_LEAGUES_ENDPOINT
-        );
         let response = caller::make_get_request::<&[()]>(
             &format!(
                 "{}{}",
@@ -140,9 +138,12 @@ impl DataPull {
             "{} - Fetching current page of schedule from The LoLEsports API",
             Local::now().format("%Y-%m-%d %H:%M:%S.%f")
         );
-        let response = caller::make_get_request::<&[()]>(lolesports::SCHEDULE_ENDPOINT, None)
-            .await
-            .with_context(|| "A failure happened retrieving the schedule from Lolesports");
+        let response = caller::make_get_request::<&[()]>(
+            &format!("{}{}", self.base_url, lolesports::SCHEDULE_ENDPOINT),
+            None,
+        )
+        .await
+        .with_context(|| "A failure happened retrieving the schedule from Lolesports");
 
         serde_json::from_str::<Wrapper<ScheduleOutter>>(&response?.text().await.unwrap())
             .map(|parsed| {
@@ -171,9 +172,12 @@ impl DataPull {
     }
 
     async fn fetch_full_schedule(&mut self) -> Result<()> {
-        let first_response = caller::make_get_request::<&[()]>(lolesports::SCHEDULE_ENDPOINT, None)
-            .await
-            .with_context(|| "A failure happened retrieving the schedule from Lolesports");
+        let first_response = caller::make_get_request::<&[()]>(
+            &format!("{}{}", self.base_url, lolesports::SCHEDULE_ENDPOINT),
+            None,
+        )
+        .await
+        .with_context(|| "A failure happened retrieving the schedule from Lolesports");
 
         let schedule_first_page =
             serde_json::from_str::<Wrapper<ScheduleOutter>>(&first_response?.text().await.unwrap())
@@ -249,9 +253,12 @@ impl DataPull {
         );
         self.events_with_recent_changes.clear();
 
-        let response = caller::make_get_request::<&[()]>(lolesports::LIVE_ENDPOINT, None)
-            .await
-            .with_context(|| "A failure happened retrieving the Live Events from Lolesports");
+        let response = caller::make_get_request::<&[()]>(
+            &format!("{}{}", self.base_url, lolesports::LIVE_ENDPOINT),
+            None,
+        )
+        .await
+        .with_context(|| "A failure happened retrieving the Live Events from Lolesports");
 
         // println!("Live fetch body: {:?}",&response?.text().await.unwrap());
 
@@ -332,7 +339,7 @@ impl DataPull {
                         Local::now().format("%Y-%m-%d %H:%M:%S.%f")
                     );
                     let response = caller::make_get_request(
-                        lolesports::EVENT_DETAILS_ENDPOINT,
+                        &format!("{}{}", self.base_url, lolesports::EVENT_DETAILS_ENDPOINT),
                         Some(&[("id", event_with_changes.id)]),
                     )
                     .await

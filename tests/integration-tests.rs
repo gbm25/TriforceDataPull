@@ -1,3 +1,4 @@
+use chrono::NaiveDate;
 #[cfg(test)]
 use color_eyre::Result;
 #[cfg(test)]
@@ -11,10 +12,11 @@ use tokio::fs;
 #[cfg(test)]
 use triforce_data_pull::{
     data_pull::serde_models::{
-        Event, EventDetails, EventOutter, LeagueForTournaments, Leagues, LiveScheduleOutter,
+        League, Event, EventDetails, EventOutter, LeagueForTournaments, Leagues, LiveScheduleOutter,
         LolesportsId, Player, ScheduleOutter, Team, TeamsPlayers, Tournament, Wrapper,
     },
     service::DataPull,
+    dao::DatabaseOps,
     utils::constants::lolesports,
 };
 
@@ -71,6 +73,59 @@ async fn test_fetch_leagues() -> Result<()> {
         msi.image,
         "http://static.lolesports.com/leagues/1592594634248_MSIDarkBG.png"
     );
+
+    mock.assert();
+
+    Ok(())
+}
+
+
+/// This test verifies the `fetch_tournaments` function by simulating a scenario where a league's 
+/// tournaments are fetched and checked for correctness.
+///
+/// The test starts a mock HTTP server to provide expected responses. It initiates a data fetch operation, 
+/// adding a test league to the data pull, and checks the fetched data.
+///
+/// Specifically, it confirms the correct number of tournaments and verifies specific details of one particular 
+/// tournament (like ID, slug, and start and end dates). It finally ensures that the HTTP request made to the 
+/// mock server was as expected.
+#[tokio::test]
+async fn test_fetch_tournaments() -> Result<()> {
+    let server = MockServer::start();
+    let mock_data = read_json_file("tests/test_data/get_tournaments_for_leagues_LEC.json").await?;
+
+    let mock = server.mock(|when: httpmock::When, then| {
+        when.method(GET).path_contains("getTournamentsForLeague");
+        then.status(200).json_body(mock_data.clone());
+    });
+    let mut data_pull: DataPull = setup();
+    data_pull.base_url = server.url("");
+
+    data_pull.leagues.leagues
+    .insert(0, 
+        League { 
+            id: LolesportsId(9876799130299601), 
+            slug: "lec".to_string(),
+            name: "LEC".to_string(), 
+            region: "EMEA".to_string(), 
+            image: "http://static.lolesports.com/leagues/1592516184297_LEC-01-FullonDark.png".to_string()
+         });
+    data_pull.fetch_tournaments().await?;
+    println!("{:#?}",data_pull.tournaments);
+    assert_eq!(data_pull.tournaments.len(),26);
+
+    let tournament = data_pull
+        .tournaments
+        .iter()
+        .find(|t| t.id.0 == 107417059262120466);
+
+    assert!(tournament.is_some());
+
+    let lec_spring_2022 = tournament.unwrap();
+    assert_eq!(lec_spring_2022.id.0, 107417059262120466);
+    assert_eq!(lec_spring_2022.slug, "lec_spring_2022");
+    assert_eq!(lec_spring_2022.start_date, NaiveDate::from_ymd_opt(2022,01,01).unwrap());
+    assert_eq!(lec_spring_2022.end_date, NaiveDate::from_ymd_opt(2022,05,01).unwrap());
 
     mock.assert();
 

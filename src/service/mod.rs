@@ -197,7 +197,7 @@ impl DataPull {
                 break;
             }
             let r = caller::make_get_request(
-                lolesports::SCHEDULE_ENDPOINT,
+                &format!("{}{}", self.base_url, lolesports::SCHEDULE_ENDPOINT),
                 Some(&[("pageToken", older_events)]),
             )
             .await
@@ -217,7 +217,7 @@ impl DataPull {
         // While the API returns a key with newer entries, we will continue fetching the calendar
         while let Some(newer_events) = &newer_entry_sentinel {
             let r = caller::make_get_request(
-                lolesports::SCHEDULE_ENDPOINT,
+                &format!("{}{}", self.base_url, lolesports::SCHEDULE_ENDPOINT),
                 Some(&[("pageToken", newer_events)]),
             )
             .await
